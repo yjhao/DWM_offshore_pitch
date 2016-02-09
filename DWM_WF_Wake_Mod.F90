@@ -582,3 +582,13 @@ MODULE RW_data
     INTEGER :: J
 
 END MODULE RW_data
+    
+!===============================================================================
+MODULE Ptfm_pitch_data
+!...............................................................................
+! The Ptfm_pitch_data data     
+!...............................................................................
+    INTEGER :: colNum
+    REAL, ALLOCATABLE :: ptfm_pitch(:,:)
+
+END MODULE Ptfm_pitch_data

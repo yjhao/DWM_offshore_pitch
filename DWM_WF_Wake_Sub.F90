@@ -1317,6 +1317,7 @@ SUBROUTINE Get_wake_center ( wakewidth, wake_center )
     USE meandering_data 
     USE parameter_file_data, ONLY : WakePosition_1, WakePosition_2, hub_height, Uambient
     USE InitCond,                     ONLY: NacYaw
+    USE Ptfm_pitch_data,    ONLY: colNum, ptfm_pitch 
    
        ! local variables
 
@@ -1378,7 +1379,8 @@ SUBROUTINE Get_wake_center ( wakewidth, wake_center )
                                         !skew_lateral_offset(NacYaw, ct_tilde, wake_center (release_time,2,1), 2*RotorR) + &
                                         !rotation_lateral_offset( wake_center (release_time,2,1) )
        
-       wake_center (release_time,2,3) = temp_center_wake (3) * (DWM_time_step*scale_factor) * U_Scale_Factor + wake_center (release_time,1,3)
+       wake_center (release_time,2,3) = temp_center_wake (3) * (DWM_time_step*scale_factor) * U_Scale_Factor + wake_center (release_time,1,3) + &
+                                        local_ptfm_pitch_angle(ptfm_pitch(release_time,1), ct_tilde, wake_center (release_time,2,1), NINT(ppR), ppR) * x_step
     END DO
 
 
@@ -1394,7 +1396,8 @@ SUBROUTINE Get_wake_center ( wakewidth, wake_center )
                                                     !rotation_lateral_offset( wake_center (release_time,flying_time+1,1) )                            - &
                                                     !rotation_lateral_offset( wake_center (release_time,flying_time,  1) )
        
-       wake_center (release_time,flying_time+1,3) = art_scale_factor * 1.00 * temp_velocity (3) * (DWM_time_step*scale_factor) * U_Scale_Factor  + wake_center (release_time,flying_time,3)
+       wake_center (release_time,flying_time+1,3) = art_scale_factor * 1.00 * temp_velocity (3) * (DWM_time_step*scale_factor) * U_Scale_Factor  + wake_center (release_time,flying_time,3) + &
+                local_ptfm_pitch_angle(ptfm_pitch(release_time,1), ct_tilde, wake_center (release_time,flying_time,1), wakewidth((flying_time-1)*scale_factor), ppR) * x_step
    
    
        END DO
@@ -2977,6 +2980,29 @@ FUNCTION local_skew_angle(yaw_angle, tilde_ct, x_spacing, wake_width, ppr)
 END FUNCTION local_skew_angle
 
 !------------------------------------------------------------------------------------------------ 
+FUNCTION local_ptfm_pitch_angle(yaw_angle, tilde_ct, x_spacing, wake_width, ppr)
+!............................................................................
+! This routine is called to return the local skew angle at a certain downstream location
+!............................................................................
+    
+    REAL     ::     yaw_angle
+    REAL     ::     tilde_ct
+    REAL     ::     x_spacing
+    INTEGER  ::     wake_width
+    REAL     ::     ppr
+    REAL     ::     local_ptfm_pitch_angle
+    
+    IF ( ABS(yaw_angle) > 0.000001 ) THEN
+        local_ptfm_pitch_angle = (ppr/wake_width)**2 *COS(yaw_angle)**2 *SIN(yaw_angle) *tilde_ct/2
+    ELSE
+        local_ptfm_pitch_angle = 0.0
+    END IF
+    
+    local_ptfm_pitch_angle = TAN(local_ptfm_pitch_angle)
+ 
+END FUNCTION local_ptfm_pitch_angle
+
+!------------------------------------------------------------------------------------------------ 
 SUBROUTINE calculate_mean_genpwr (total_power, total_timestep)
 !------------------------------------------------------------------------------------------------
 ! This routine is used to calculate the average time step power from SD subroutine
@@ -3034,6 +3060,40 @@ SUBROUTINE collect_velocity(axial_u)
     total_velocity_counter = total_velocity_counter + 1
 
 END SUBROUTINE collect_velocity
+
+!------------------------------------------------------------------------------------------------ 
+SUBROUTINE Get_ptfmPitch()
+!------------------------------------------------------------------------------------------------
+!  This subroutine is used to collect the axial velocity
+!------------------------------------------------------------------------------------------------
+    
+    USE Ptfm_pitch_data,    ONLY: colNum, ptfm_pitch
+    
+    Integer :: use_ptfm_pitch
+    Integer :: I
+    REAL    :: curPitch
+    
+    use_ptfm_pitch = 0
+    
+    OPEN (unit=99, file='C:\Users\Administrator\Dropbox\Research\DATA\OC3_pitch\ptfmPitch_8.txt', status='old', action='read')
+    READ (99, *) colNum
+    
+    ALLOCATE (ptfm_pitch(colNum,1))
+    
+    if (use_ptfm_pitch == 1) THEN
+        DO I = 1, colNum
+            READ(99,*) curPitch
+            ptfm_pitch(I,1) = curPitch * Pi / 180 
+        END DO
+    else
+        DO I = 1, colNum
+            ptfm_pitch(I,1) = 0
+        END DO
+    end IF
+    
+    CLOSE(99)
+
+END SUBROUTINE Get_ptfmPitch
 
 
 END MODULE DWM_Wake_Sub

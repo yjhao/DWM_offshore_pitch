@@ -99,6 +99,7 @@ SUBROUTINE calculate_DWM ( blade_radius, num_element, r_t  )
                 
   !-----------------------------------------------------------------------------------------------------
     IF (ranW==0)   THEN     
+        CALL Get_ptfmPitch()
         CALL Get_wake_center ( wake_width, wake_position )
     ELSE IF (ranW == 1)   THEN
         CALL Get_wake_center_RW (wake_position)
